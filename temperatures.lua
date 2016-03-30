@@ -19,12 +19,20 @@ wifi.sta.autoconnect(1)
 
 Broker="88.146.202.186"  
 
+heartBeat = node.bootreason()
+print("Boot reason:")
+print(heartBeat)
+
 pin = 4 --GPIO2
 t.setup(pin)
 addrs=t.addrs()
 devices = table.getn(addrs)
 
 print("Found "..devices.." DS18B20 device(s) on "..pin.." pin.")
+
+versionSW             = "0.1"
+versionSWString       = "Central Heating v" 
+print(versionSWString .. versionSW)
 
 function sendData()
   --print(node.heap())
@@ -37,14 +45,36 @@ function sendData()
   --print(sec)
   --print(usec)
   print("I am sending data from "..deviceID.." to OpenHab")
-  m:publish(base.."tLivingRoom", string.format("%.1f",t.read(addrs[4],t.C)),0,0)  
-  m:publish(base.."tBedRoomNew", string.format("%.1f",t.read(addrs[1],t.C)),0,0) 
-  m:publish(base.."tBedRoomOld", string.format("%.1f",t.read(addrs[2],t.C)),0,0) 
-  m:publish(base.."tCorridor", string.format("%.1f",t.read(addrs[5],t.C)),0,0) 
-  m:publish(base.."tHall", string.format("%.1f",t.read(addrs[6],t.C)),0,0) 
-  m:publish(base.."tBath", string.format("%.1f",t.read(addrs[7],t.C)),0,0) 
-  m:publish(base.."tWorkRoom", string.format("%.1f",t.read(addrs[8],t.C)),0,0) 
-  m:publish(base.."tAttic", string.format("%.1f",t.read(addrs[3],t.C)),0,0) 
+  if t.read(addrs[4],t.C)~=nil then
+    m:publish(base.."tLivingRoom", string.format("%.1f",t.read(addrs[4],t.C)),0,0)  
+  end
+  if t.read(addrs[1],t.C)~=nil then
+    m:publish(base.."tBedRoomNew", string.format("%.1f",t.read(addrs[1],t.C)),0,0) 
+  end
+  if t.read(addrs[2],t.C)~=nil then
+    m:publish(base.."tBedRoomOld", string.format("%.1f",t.read(addrs[2],t.C)),0,0) 
+  end
+  if t.read(addrs[5],t.C)~=nil then
+    m:publish(base.."tCorridor", string.format("%.1f",t.read(addrs[5],t.C)),0,0) 
+  end
+  if t.read(addrs[6],t.C)~=nil then
+    m:publish(base.."tHall", string.format("%.1f",t.read(addrs[6],t.C)),0,0) 
+  end
+  if t.read(addrs[7],t.C)~=nil then
+    m:publish(base.."tBath", string.format("%.1f",t.read(addrs[7],t.C)),0,0) 
+  end
+  if t.read(addrs[8],t.C)~=nil then
+    m:publish(base.."tWorkRoom", string.format("%.1f",t.read(addrs[8],t.C)),0,0) 
+  end
+  if t.read(addrs[3],t.C)~=nil then
+    m:publish(base.."tAttic", string.format("%.1f",t.read(addrs[3],t.C)),0,0) 
+  end
+  m:publish(base.."VersionSW",              versionSW,0,0)  
+  m:publish(base.."HeartBeat",              heartBeat,0,0)  
+  if heartBeat==0 then heartBeat=1
+  else heartBeat=0
+  end
+
   --[[--file.open("data.log", "a+")
   file.write(string.format("%i",sec))
   file.write(";")
@@ -59,6 +89,7 @@ end
   
 function reconnect()
   print ("Waiting for Wifi")
+  heartBeat = 10
   if wifi.sta.status() == 5 and wifi.sta.getip() ~= nil then 
     print ("Wifi Up!")
     tmr.stop(1) 
