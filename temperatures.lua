@@ -30,7 +30,7 @@ devices = table.getn(addrs)
 
 print("Found "..devices.." DS18B20 device(s) on "..pin.." pin.")
 
-versionSW             = "0.1"
+versionSW             = "0.2"
 versionSWString       = "Central Heating v" 
 print(versionSWString .. versionSW)
 
@@ -140,6 +140,5 @@ tmr.alarm(0, 1000, 1, function()
         sendData()
       end)
     end)
-    sendData()
   end
 end)
