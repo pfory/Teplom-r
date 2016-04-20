@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE eagle SYSTEM "eagle.dtd">
-<eagle version="7.3.0">
+<eagle version="6.5.0">
 <drawing>
 <settings>
 <setting alwaysvectorfont="no"/>
@@ -3799,10 +3799,11 @@ Grid 5.08 mm&lt;p&gt;
 <part name="U$1" library="ESP8266" deviceset="ESP8266-01" device=""/>
 <part name="+3V1" library="supply1" deviceset="+3V3" device=""/>
 <part name="GND1" library="supply1" deviceset="GND" device=""/>
-<part name="R1" library="rcl" deviceset="R-EU_" device="0204/5"/>
+<part name="R1" library="rcl" deviceset="R-EU_" device="0204/5" value="4k7"/>
 <part name="X1" library="con-wago-508" deviceset="W237-3E" device=""/>
 <part name="X2" library="con-wago-508" deviceset="W237-02P" device=""/>
 <part name="X3" library="con-wago-508" deviceset="W237-04P" device=""/>
+<part name="R2" library="rcl" deviceset="R-EU_" device="0204/5" value="4k7"/>
 </parts>
 <sheets>
 <sheet>
@@ -3822,6 +3823,7 @@ Grid 5.08 mm&lt;p&gt;
 <instance part="X3" gate="-2" x="-38.1" y="53.34"/>
 <instance part="X3" gate="-3" x="-38.1" y="48.26"/>
 <instance part="X3" gate="-4" x="-38.1" y="43.18"/>
+<instance part="R2" gate="G$1" x="-15.24" y="68.58" rot="R90"/>
 </instances>
 <busses>
 </busses>
@@ -3839,10 +3841,13 @@ Grid 5.08 mm&lt;p&gt;
 <wire x1="-2.54" y1="66.04" x2="-2.54" y2="73.66" width="0.1524" layer="91"/>
 <junction x="-2.54" y="66.04"/>
 <pinref part="X2" gate="-1" pin="KL"/>
-<wire x1="-2.54" y1="73.66" x2="-22.86" y2="73.66" width="0.1524" layer="91"/>
+<wire x1="-2.54" y1="73.66" x2="-15.24" y2="73.66" width="0.1524" layer="91"/>
+<wire x1="-15.24" y1="73.66" x2="-22.86" y2="73.66" width="0.1524" layer="91"/>
 <wire x1="-2.54" y1="66.04" x2="-2.54" y2="43.18" width="0.1524" layer="91"/>
 <pinref part="X3" gate="-4" pin="KL"/>
 <wire x1="-2.54" y1="43.18" x2="-33.02" y2="43.18" width="0.1524" layer="91"/>
+<pinref part="R2" gate="G$1" pin="2"/>
+<junction x="-15.24" y="73.66"/>
 </segment>
 </net>
 <net name="GND" class="0">
@@ -3901,7 +3906,10 @@ Grid 5.08 mm&lt;p&gt;
 <pinref part="X3" gate="-3" pin="KL"/>
 <pinref part="U$1" gate="G$1" pin="GPIO0"/>
 <wire x1="12.7" y1="48.26" x2="12.7" y2="60.96" width="0.1524" layer="91"/>
-<wire x1="-33.02" y1="48.26" x2="12.7" y2="48.26" width="0.1524" layer="91"/>
+<wire x1="-33.02" y1="48.26" x2="-15.24" y2="48.26" width="0.1524" layer="91"/>
+<pinref part="R2" gate="G$1" pin="1"/>
+<wire x1="-15.24" y1="48.26" x2="12.7" y2="48.26" width="0.1524" layer="91"/>
+<wire x1="-15.24" y1="63.5" x2="-15.24" y2="48.26" width="0.1524" layer="91"/>
 </segment>
 </net>
 </nets>
