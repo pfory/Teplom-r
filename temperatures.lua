@@ -30,7 +30,7 @@ devices = table.getn(addrs)
 
 print("Found "..devices.." DS18B20 device(s) on "..pin.." pin.")
 
-versionSW             = "0.2"
+versionSW             = "0.3"
 versionSWString       = "Central Heating v" 
 print(versionSWString .. versionSW)
 
