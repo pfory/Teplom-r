@@ -19,7 +19,7 @@ wifi.sta.autoconnect(1)
 
 Broker="88.146.202.186"  
 
-heartBeat = node.bootreason()
+heartBeat = node.bootreason() + 10
 print("Boot reason:")
 print(heartBeat)
 
