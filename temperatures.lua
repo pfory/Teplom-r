@@ -31,7 +31,7 @@ devices = table.getn(addrs)
 print("Found "..devices.." DS18B20 device(s) on "..pin.." pin.")
 
 versionSW             = "0.35"
-versionSWString       = "Central Heating v" 
+versionSWString       = "Temperatures v" 
 print(versionSWString .. versionSW)
 
 function sendData()
