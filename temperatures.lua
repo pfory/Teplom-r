@@ -30,7 +30,7 @@ devices = table.getn(addrs)
 
 print("Found "..devices.." DS18B20 device(s) on "..pin.." pin.")
 
-versionSW             = "0.35"
+versionSW             = "0.4"
 versionSWString       = "Temperatures v" 
 print(versionSWString .. versionSW)
 
@@ -41,9 +41,6 @@ function sendData()
     print(t.read(addrs[i],t.C))
   end
   print("---------------------------------")
-  --sec, usec = rtctime.get()
-  --print(sec)
-  --print(usec)
   print("I am sending data from "..deviceID.." to OpenHab")
   if t.read(addrs[4],t.C)~=nil then
     m:publish(base.."tLivingRoom", string.format("%.1f",t.read(addrs[4],t.C)),0,0)  
@@ -74,22 +71,10 @@ function sendData()
   if heartBeat==0 then heartBeat=1
   else heartBeat=0
   end
-
-  --[[--file.open("data.log", "a+")
-  file.write(string.format("%i",sec))
-  file.write(";")
-  for i=1,devices do 
-    file.write(string.format("%.1f",t.read(addrs[i],t.C)))
-    file.write(";")
-  end
-  file.write("\n\r")
-  file.close()
-  ]]--
 end
   
 function reconnect()
   print ("Waiting for Wifi")
-  heartBeat = 10
   if wifi.sta.status() == 5 and wifi.sta.getip() ~= nil then 
     print ("Wifi Up!")
     tmr.stop(1) 
@@ -99,8 +84,23 @@ function reconnect()
       mqtt_sub() --run the subscription function 
     end)
   end
+  heartBeat=20
+  sendHB()
 end
 
+function sendHB()
+  print("I am sending HB to OpenHab")
+  m:publish(base.."HeartBeat",   heartBeat,0,0)
+ 
+  if heartBeat==0 then heartBeat=1
+  else heartBeat=0
+  end
+end
+
+-- kazdych 10 minut provede reconnect na broker
+tmr.alarm(5, 600000, 1, function() 
+  reconnect()
+end)
 
 function mqtt_sub()  
   m:subscribe(base.."com",0, function(conn)   
@@ -127,18 +127,11 @@ tmr.alarm(0, 1000, 1, function()
       mqtt_sub() --run the subscription function 
       print(wifi.sta.getip())
       print("Mqtt Connected to:" .. Broker.." - "..base) 
-      --[[sntp.sync('217.31.202.100',
-      function(sec,usec,server)
-        print('sync', sec, usec, server)
-        rtctime.set(sec, usec)
-        end,
-        function()
-         print('failed!')
-        end
-      )]]--
+      m:publish(base.."VersionSW",   versionSW,0,0)  
+      sendHB() 
       tmr.alarm(3, 60000, 1, function()  
         sendData()
       end)
-    end)
+    end)  
   end
 end)
