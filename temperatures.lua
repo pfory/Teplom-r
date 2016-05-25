@@ -118,10 +118,11 @@ m:on("offline", function(con)
 end)  
 
 
+uart.write(0,"Connecting to Wifi")
 tmr.alarm(0, 1000, 1, function() 
   print ("Connecting to Wifi... ")
   if wifi.sta.status() == 5 and wifi.sta.getip() ~= nil then 
-    print ("Wifi connected")
+    uart.write(0,".")
     tmr.stop(0) 
     m:connect(Broker, 31883, 0, function(conn) 
       mqtt_sub() --run the subscription function 
