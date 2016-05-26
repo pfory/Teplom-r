@@ -15,6 +15,12 @@ deviceID = "ESP8266 Temperatures "..node.chipid()
 
 wifi.setmode(wifi.STATION)
 wifi.sta.config("Datlovo","Nu6kMABmseYwbCoJ7LyG")
+cfg={
+  ip = "192.168.1.151",
+  netmask = "255.255.255.0",
+  gateway = "192.168.1.1"
+}
+wifi.sta.setip(cfg)
 wifi.sta.autoconnect(1)
 
 Broker="88.146.202.186"  
