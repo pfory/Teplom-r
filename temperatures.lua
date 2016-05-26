@@ -97,11 +97,6 @@ function sendHB()
   end
 end
 
--- kazdych 10 minut provede reconnect na broker
-tmr.alarm(5, 600000, 1, function() 
-  reconnect()
-end)
-
 function mqtt_sub()  
   m:subscribe(base.."com",0, function(conn)   
     print("Mqtt Subscribed to OpenHAB feed for device "..deviceID)  
@@ -124,7 +119,7 @@ tmr.alarm(0, 1000, 1, function()
   if wifi.sta.status() == 5 and wifi.sta.getip() ~= nil then 
     uart.write(0,".")
     tmr.stop(0) 
-    m:connect(Broker, 31883, 0, function(conn) 
+    m:connect(Broker, 31883, 0, 1, function(conn) 
       mqtt_sub() --run the subscription function 
       print(wifi.sta.getip())
       print("Mqtt Connected to:" .. Broker.." - "..base) 
