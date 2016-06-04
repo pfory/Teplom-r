@@ -13,6 +13,14 @@ t=require('ds18b20')
 base = "/home/bedNew/esp03/"
 deviceID = "ESP8266 Temperatures "..node.chipid()
 
+cfg=
+{
+  ip = "192.168.1.155",
+  netmask = "255.255.255.0",
+  gateway = "192.168.1.1"
+}
+
+wifi.sta.setip(cfg)
 wifi.setmode(wifi.STATION)
 wifi.sta.config("Datlovo","Nu6kMABmseYwbCoJ7LyG")
 wifi.sta.autoconnect(1)
@@ -20,8 +28,7 @@ wifi.sta.autoconnect(1)
 Broker="88.146.202.186"  
 
 heartBeat = node.bootreason() + 10
-print("Boot reason:")
-print(heartBeat)
+print("Boot reason:"..heartBeat)
 
 pin = 4 --GPIO2
 t.setup(pin)
@@ -30,7 +37,7 @@ devices = table.getn(addrs)
 
 print("Found "..devices.." DS18B20 device(s) on "..pin.." pin.")
 
-versionSW             = "0.4"
+versionSW             = "0.5"
 versionSWString       = "Temperatures v" 
 print(versionSWString .. versionSW)
 
@@ -120,7 +127,6 @@ end)
 
 uart.write(0,"Connecting to Wifi")
 tmr.alarm(0, 1000, 1, function() 
-  print ("Connecting to Wifi... ")
   if wifi.sta.status() == 5 and wifi.sta.getip() ~= nil then 
     uart.write(0,".")
     tmr.stop(0) 
