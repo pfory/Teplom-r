@@ -23,6 +23,12 @@ cfg=
 wifi.sta.setip(cfg)
 wifi.setmode(wifi.STATION)
 wifi.sta.config("Datlovo","Nu6kMABmseYwbCoJ7LyG")
+cfg={
+  ip = "192.168.1.151",
+  netmask = "255.255.255.0",
+  gateway = "192.168.1.1"
+}
+wifi.sta.setip(cfg)
 wifi.sta.autoconnect(1)
 
 Broker="88.146.202.186"  
@@ -85,7 +91,7 @@ function reconnect()
   if wifi.sta.status() == 5 and wifi.sta.getip() ~= nil then 
     print ("Wifi Up!")
     tmr.stop(1) 
-    m:connect(Broker, 31883, 0, function(conn) 
+    m:connect(Broker, 31883, 0, 1, function(conn) 
       print(wifi.sta.getip())
       print("Mqtt Connected to:" .. Broker) 
       mqtt_sub() --run the subscription function 
@@ -103,11 +109,6 @@ function sendHB()
   else heartBeat=0
   end
 end
-
--- kazdych 10 minut provede reconnect na broker
-tmr.alarm(5, 600000, 1, function() 
-  reconnect()
-end)
 
 function mqtt_sub()  
   m:subscribe(base.."com",0, function(conn)   
@@ -130,7 +131,7 @@ tmr.alarm(0, 1000, 1, function()
   if wifi.sta.status() == 5 and wifi.sta.getip() ~= nil then 
     uart.write(0,".")
     tmr.stop(0) 
-    m:connect(Broker, 31883, 0, function(conn) 
+    m:connect(Broker, 31883, 0, 1, function(conn) 
       mqtt_sub() --run the subscription function 
       print(wifi.sta.getip())
       print("Mqtt Connected to:" .. Broker.." - "..base) 
