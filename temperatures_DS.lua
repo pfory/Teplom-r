@@ -22,6 +22,19 @@ pin = 4 --GPIO2
 t.setup(pin)
 addrs=t.addrs()
 devices = table.getn(addrs)
+tabSensor = {}
+
+--nacteni konfigurace teplomeru
+filename ="device.config"
+if file.exists(filename) then
+  print("Config file exists, read DS18B20 configuration.") --format device id;mqtt substring
+  table.insert(tabSensor, addr, substring)
+else
+  file.open(filename, "w")
+  file.write(addrs)
+  file.close()
+  print("Config file does not exists. New file device.config was created.")
+end
 
 print("Found "..devices.." DS18B20 device(s) on "..pin.." pin.")
 
@@ -40,30 +53,40 @@ function sendData()
   --print(sec)
   --print(usec)
   print("I am sending data from "..deviceID.." to OpenHab")
-  if t.read(addrs[4],t.C)~=nil then
-    m:publish(base.."tLivingRoom", string.format("%.1f",t.read(addrs[4],t.C)),0,0)  
+
+  for i=1,devices,1 do
+    for j=1,table.getn(tabSensor),1 do
+      if tabSensor.addr[j] = addrs.addr[i] then
+        m:publish(base..tabSensor.substring[j], string.format("%.1f",t.read(addrs[i],t.C)),0,0)  
+      end
+    end
   end
-  if t.read(addrs[1],t.C)~=nil then
-    m:publish(base.."tBedRoomNew", string.format("%.1f",t.read(addrs[1],t.C)),0,0) 
-  end
-  if t.read(addrs[2],t.C)~=nil then
-    m:publish(base.."tBedRoomOld", string.format("%.1f",t.read(addrs[2],t.C)),0,0) 
-  end
-  if t.read(addrs[5],t.C)~=nil then
-    m:publish(base.."tCorridor", string.format("%.1f",t.read(addrs[5],t.C)),0,0) 
-  end
-  if t.read(addrs[6],t.C)~=nil then
-    m:publish(base.."tHall", string.format("%.1f",t.read(addrs[6],t.C)),0,0) 
-  end
-  if t.read(addrs[7],t.C)~=nil then
-    m:publish(base.."tBath", string.format("%.1f",t.read(addrs[7],t.C)),0,0) 
-  end
-  if t.read(addrs[8],t.C)~=nil then
-    m:publish(base.."tWorkRoom", string.format("%.1f",t.read(addrs[8],t.C)),0,0) 
-  end
-  if t.read(addrs[3],t.C)~=nil then
-    m:publish(base.."tAttic", string.format("%.1f",t.read(addrs[3],t.C)),0,0) 
-  end
+  
+  
+  -- if t.read(addrs[4],t.C)~=nil then
+    -- m:publish(base.."tLivingRoom", string.format("%.1f",t.read(addrs[4],t.C)),0,0)  
+  -- end
+  -- if t.read(addrs[1],t.C)~=nil then
+    -- m:publish(base.."tBedRoomNew", string.format("%.1f",t.read(addrs[1],t.C)),0,0) 
+  -- end
+  -- if t.read(addrs[2],t.C)~=nil then
+    -- m:publish(base.."tBedRoomOld", string.format("%.1f",t.read(addrs[2],t.C)),0,0) 
+  -- end
+  -- if t.read(addrs[5],t.C)~=nil then
+    -- m:publish(base.."tCorridor", string.format("%.1f",t.read(addrs[5],t.C)),0,0) 
+  -- end
+  -- if t.read(addrs[6],t.C)~=nil then
+    -- m:publish(base.."tHall", string.format("%.1f",t.read(addrs[6],t.C)),0,0) 
+  -- end
+  -- if t.read(addrs[7],t.C)~=nil then
+    -- m:publish(base.."tBath", string.format("%.1f",t.read(addrs[7],t.C)),0,0) 
+  -- end
+  -- if t.read(addrs[8],t.C)~=nil then
+    -- m:publish(base.."tWorkRoom", string.format("%.1f",t.read(addrs[8],t.C)),0,0) 
+  -- end
+  -- if t.read(addrs[3],t.C)~=nil then
+    -- m:publish(base.."tAttic", string.format("%.1f",t.read(addrs[3],t.C)),0,0) 
+  -- end
   m:publish(base.."VersionSW",              versionSW,0,0)  
   m:publish(base.."HeartBeat",              heartBeat,0,0)  
   if heartBeat==0 then heartBeat=1
