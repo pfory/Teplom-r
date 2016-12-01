@@ -12,9 +12,8 @@
 OneWire onewire(ONE_WIRE_BUS); // pin for onewire DALLAS bus
 DallasTemperature dsSensors(&onewire);
 DeviceAddress tempDeviceAddress;
-#ifndef NUMBER_OF_DEVICES
-#define NUMBER_OF_DEVICES 10
-#endif
+#define NUMBER_OF_DEVICES 7
+
 DeviceAddress tempDeviceAddresses[NUMBER_OF_DEVICES];
 //int  resolution = 12;
 unsigned int numberOfDevices; // Number of temperature devices found
