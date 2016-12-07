@@ -7,7 +7,7 @@
 #include "Adafruit_MQTT.h"
 #include "Adafruit_MQTT_Client.h"
 
-#define ONE_WIRE_BUS 3 //IO2
+#define ONE_WIRE_BUS D4 //IO2
 #define TEMPERATURE_PRECISION 12
 OneWire onewire(ONE_WIRE_BUS); // pin for onewire DALLAS bus
 DallasTemperature dsSensors(&onewire);
@@ -26,36 +26,34 @@ const char *password = "Nu6kMABmseYwbCoJ7LyG";
 
 ESP8266WebServer server(80);
 
-#define AIO_SERVER      "192.168.1.56"
+#define AIO_SERVER      "178.77.238.20"
 #define AIO_SERVERPORT  1883
 #define AIO_USERNAME    "datel"
-#define AIO_KEY         "hanka"
+#define AIO_KEY         "hanka12"
 
 WiFiClient client;
 
 Adafruit_MQTT_Client mqtt(&client, AIO_SERVER, AIO_SERVERPORT, AIO_USERNAME, AIO_KEY);
 
 unsigned int const sendTimeDelay=30000;
-unsigned long lastSendTime;
+signed long lastSendTime = sendTimeDelay * -1;
 
 /****************************** Feeds ***************************************/
-
-// Notice MQTT paths for AIO follow the form: <username>/feeds/<feedname>
-Adafruit_MQTT_Publish temperaturesLivingRoom = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/home/bedNew/esp03/tLivingRoom");
-Adafruit_MQTT_Publish temperaturesBedRoomNew = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/home/bedNew/esp03/tBedRoomNew");
-Adafruit_MQTT_Publish temperaturesBedRoomOld = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/home/bedNew/esp03/tBedRoomOld");
-Adafruit_MQTT_Publish temperaturesCorridor = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/home/bedNew/esp03/tCorridor");
-Adafruit_MQTT_Publish temperaturesHall = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/home/bedNew/esp03/tHall");
-Adafruit_MQTT_Publish temperaturesBath = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/home/bedNew/esp03/tBath");
-Adafruit_MQTT_Publish temperaturesWorkRoom = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/home/bedNew/esp03/tWorkRoom");
-Adafruit_MQTT_Publish temperaturesAttic = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/home/bedNew/esp03/tAttic");
-Adafruit_MQTT_Publish temperaturesVersionSW = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/home/bedNew/esp03/VersionSW");
-Adafruit_MQTT_Publish temperaturesHeartBeat= Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/home/bedNew/esp03/HeartBeat");
+Adafruit_MQTT_Publish temperaturesLivingRoom = Adafruit_MQTT_Publish(&mqtt,  "/home/bedNew/esp03T/tLivingRoom");
+Adafruit_MQTT_Publish temperaturesBedRoomNew = Adafruit_MQTT_Publish(&mqtt,  "/home/bedNew/esp03T/tBedRoomNew");
+Adafruit_MQTT_Publish temperaturesBedRoomOld = Adafruit_MQTT_Publish(&mqtt,  "/home/bedNew/esp03T/tBedRoomOld");
+Adafruit_MQTT_Publish temperaturesCorridor = Adafruit_MQTT_Publish(&mqtt,  "/home/bedNew/esp03T/tCorridor");
+Adafruit_MQTT_Publish temperaturesHall = Adafruit_MQTT_Publish(&mqtt,  "/home/bedNew/esp03T/tHall");
+Adafruit_MQTT_Publish temperaturesBath = Adafruit_MQTT_Publish(&mqtt,  "/home/bedNew/esp03T/tBath");
+Adafruit_MQTT_Publish temperaturesWorkRoom = Adafruit_MQTT_Publish(&mqtt,  "/home/bedNew/esp03T/tWorkRoom");
+Adafruit_MQTT_Publish temperaturesAttic = Adafruit_MQTT_Publish(&mqtt,  "/home/bedNew/esp03T/tAttic");
+Adafruit_MQTT_Publish temperaturesVersionSW = Adafruit_MQTT_Publish(&mqtt,  "/home/bedNew/esp03T/VersionSW");
+Adafruit_MQTT_Publish temperaturesHeartBeat= Adafruit_MQTT_Publish(&mqtt,  "/home/bedNew/esp03T/HeartBeat");
 
 // Setup a feed called 'onoff' for subscribing to changes.
 //Adafruit_MQTT_Subscribe onoffbutton = Adafruit_MQTT_Subscribe(&mqtt, AIO_USERNAME "/feeds/onoff");
 
-#define SERIALSPEED 11520
+#define SERIALSPEED 115200
 
 void handleRoot()
 {
@@ -108,9 +106,11 @@ void handleNotFound() {
 
 
 void setup() {
+  Serial.begin(SERIALSPEED);
+  Serial.println("Teploty");
+  
   dsInit();
   WiFi.begin(ssid, password);
-	Serial.println("");
 
 	// Wait for connection
 	while (WiFi.status() != WL_CONNECTED) {
@@ -157,7 +157,7 @@ void loop() {
     lastSendTime = millis();
     
     mereni();
-
+    
     if (! temperaturesLivingRoom.publish(sensor[0])) {
       Serial.println(F("Failed"));
     } else {
@@ -208,6 +208,9 @@ void loop() {
 void dsInit(void) {
   dsSensors.begin();
   numberOfDevices = dsSensors.getDeviceCount();
+  Serial.print("Found ");
+  Serial.print(numberOfDevices);
+  Serial.print(" DS18B20 device(s).");
 
   // Loop through each device, print out address
   for (byte i=0;i<numberOfDevices; i++) {

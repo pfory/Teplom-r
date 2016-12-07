@@ -109,7 +109,7 @@ tmr.alarm(0, 1000, 1, function()
   if wifi.sta.status() == 5 and wifi.sta.getip() ~= nil then 
     print ("Wifi connected")
     tmr.stop(0) 
-    m:connect(Broker, 31883, 0, function(conn) 
+    m:connect(Broker, 1883, 0, function(conn) 
       mqtt_sub() --run the subscription function 
       print(wifi.sta.getip())
       print("Mqtt Connected to:" .. Broker.." - "..base) 
