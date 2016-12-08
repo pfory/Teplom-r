@@ -55,6 +55,9 @@ Adafruit_MQTT_Publish temperaturesHeartBeat= Adafruit_MQTT_Publish(&mqtt,  "/hom
 
 #define SERIALSPEED 115200
 
+void MQTT_connect(void);
+
+
 void handleRoot()
 {
   mereni();
@@ -131,10 +134,6 @@ void setup() {
 	server.onNotFound(handleNotFound);
 	server.begin();
 	Serial.println("HTTP server started");
-  
-  // Setup MQTT subscription for onoff feed.
-  //mqtt.subscribe(&onoffbutton);
-
 }
 
 uint32_t x=0;
@@ -157,42 +156,6 @@ void loop() {
     lastSendTime = millis();
     
     mereni();
-    
-    if (! temperaturesLivingRoom.publish(sensor[0])) {
-      Serial.println(F("Failed"));
-    } else {
-      Serial.println(F("OK!"));
-    }
-    if (! temperaturesBedRoomNew.publish(sensor[1])) {
-      Serial.println(F("Failed"));
-    } else {
-      Serial.println(F("OK!"));
-    }
-    if (! temperaturesBedRoomOld.publish(sensor[2])) {
-      Serial.println(F("Failed"));
-    } else {
-      Serial.println(F("OK!"));
-    }
-    if (! temperaturesBath.publish(sensor[3])) {
-      Serial.println(F("Failed"));
-    } else {
-      Serial.println(F("OK!"));
-    }
-    if (! temperaturesWorkRoom.publish(sensor[4])) {
-      Serial.println(F("Failed"));
-    } else {
-      Serial.println(F("OK!"));
-    }
-    if (! temperaturesCorridor.publish(sensor[5])) {
-      Serial.println(F("Failed"));
-    } else {
-      Serial.println(F("OK!"));
-    }
-    if (! temperaturesHall.publish(sensor[6])) {
-      Serial.println(F("Failed"));
-    } else {
-      Serial.println(F("OK!"));
-    }
   }
   // ping the server to keep the mqtt connection alive
   // NOT required if you are publishing once every KEEPALIVE seconds
@@ -216,11 +179,8 @@ void dsInit(void) {
   for (byte i=0;i<numberOfDevices; i++) {
       // Search the wire for address
     if (dsSensors.getAddress(tempDeviceAddress, i)) {
-      /*for (byte j=0; j<8; j++) {
-        if (tempDeviceAddress[j] < 16) Serial.print("0");
-      }
-      */
       memcpy(tempDeviceAddresses[i],tempDeviceAddress,8);
+      //Serial.println(tempDeviceAddresses[i]);
     }
     else
     {
@@ -237,22 +197,85 @@ void mereni() {
   delay(dsMeassureDelay);
   for (byte i=0;i<numberOfDevices; i++) {
     float tempTemp=-126;
-    for (byte j=0;j<10;j++) { //try to read temperature ten times
-      //tempTemp = dsSensors.getTempCByIndex(i);
+    for (byte j=0;j<10;j++) {
       tempTemp = dsSensors.getTempC(tempDeviceAddresses[i]);
       if (tempTemp>=-55) {
         break;
       }
     }
     sensor[i]=tempTemp;
-    Serial.print("Sensor");
+    Serial.print("Sensor ");
     Serial.print(i);
     Serial.print(" (");
-    dsSensors.getAddress(tempDeviceAddress, i);
-    Serial.print(8);
-    Serial.print("):");
+    if (dsSensors.getAddress(tempDeviceAddress, i)) {
+      for (byte j=0; j<8; j++) {
+        if (tempDeviceAddress[j] < 16) {
+          Serial.print(0);
+        }
+        Serial.print(tempDeviceAddress[j], HEX);
+        if (j<7) Serial.print(".");
+      }
+    }
+    Serial.print(") - ");
     Serial.print(sensor[i]);
-    Serial.print("°C");
+    Serial.println(" C");
+  }
+  for (byte i=0; i<numberOfDevices; i++) {
+    Serial.print("Send temperature ");
+    Serial.print(sensor[i]);
+    Serial.print(" of sensor ");
+    Serial.print(i);
+    Serial.print(" to MQTT broker, topic ");
+    Serial.print(" return  ");
+    if (i==0) {
+      if (! temperaturesLivingRoom.publish(sensor[i])) {
+        Serial.println("failed");
+      } else {
+        Serial.println("OK!");
+      }
+    }
+    if (i==1) {
+      if (! temperaturesAttic.publish(sensor[i])) {
+        Serial.println("failed");
+      } else {
+        Serial.println("OK!");
+      }
+    }
+    if (i==2) {
+      if (! temperaturesBath.publish(sensor[i])) {
+        Serial.println("failed");
+      } else {
+        Serial.println("OK!");
+      }
+    }
+    if (i==3) {
+      if (! temperaturesBedRoomNew.publish(sensor[i])) {
+        Serial.println("failed");
+      } else {
+        Serial.println("OK!");
+      }
+    }
+    if (i==4) {
+      if (! temperaturesBedRoomOld.publish(sensor[i])) {
+        Serial.println("failed");
+      } else {
+        Serial.println("OK!");
+      }
+    }
+    if (i==5) {
+      if (! temperaturesHall.publish(sensor[i])) {
+        Serial.println("failed");
+      } else {
+        Serial.println("OK!");
+      }
+    }
+    if (i==6) {
+      if (! temperaturesWorkRoom.publish(sensor[i])) {
+        Serial.println("failed");
+      } else {
+        Serial.println("OK!");
+      }
+    }
   }
 }
 
