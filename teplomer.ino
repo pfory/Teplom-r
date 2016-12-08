@@ -245,7 +245,14 @@ void mereni() {
       }
     }
     sensor[i]=tempTemp;
-    Serial.println(sensor[i]);
+    Serial.print("Sensor");
+    Serial.print(i);
+    Serial.print(" (");
+    dsSensors.getAddress(tempDeviceAddress, i);
+    Serial.print(8);
+    Serial.print("):");
+    Serial.print(sensor[i]);
+    Serial.print("°C");
   }
 }
 
