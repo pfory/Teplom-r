@@ -7,7 +7,7 @@
 #include "Adafruit_MQTT.h"
 #include "Adafruit_MQTT_Client.h"
 
-#define ONE_WIRE_BUS D4 //IO2
+#define ONE_WIRE_BUS 4 //IO2
 #define TEMPERATURE_PRECISION 12
 OneWire onewire(ONE_WIRE_BUS); // pin for onewire DALLAS bus
 DallasTemperature dsSensors(&onewire);
@@ -26,7 +26,7 @@ const char *password = "Nu6kMABmseYwbCoJ7LyG";
 
 ESP8266WebServer server(80);
 
-#define AIO_SERVER      "178.77.238.20"
+#define AIO_SERVER      "192.168.1.56"
 #define AIO_SERVERPORT  1883
 #define AIO_USERNAME    "datel"
 #define AIO_KEY         "hanka12"
