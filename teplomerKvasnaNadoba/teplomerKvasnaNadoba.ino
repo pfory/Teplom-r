@@ -7,7 +7,7 @@
 #include "Adafruit_MQTT.h"
 #include "Adafruit_MQTT_Client.h"
 
-#define ONE_WIRE_BUS D4 //IO2
+#define ONE_WIRE_BUS 2 //IO2
 #define TEMPERATURE_PRECISION 12
 OneWire onewire(ONE_WIRE_BUS); // pin for onewire DALLAS bus
 DallasTemperature dsSensors(&onewire);
@@ -26,7 +26,7 @@ const char *password = "Nu6kMABmseYwbCoJ7LyG";
 
 ESP8266WebServer server(80);
 
-#define AIO_SERVER      "178.77.238.20"
+#define AIO_SERVER      "192.168.1.56"
 #define AIO_SERVERPORT  1883
 #define AIO_USERNAME    "datel"
 #define AIO_KEY         "hanka12"
@@ -68,14 +68,14 @@ void handleRoot()
     </style>\
   </head>\
   <body>\
-    <h1>Teploty chata</h1>\
+    <h1>Teploty</h1>\
     <p>Uptime: %02d:%02d:%02d</p>\
-	<p>Teplota venku: %02d.%01d&deg;C</p>\
-	<p>Teplota doma: %02d.%01d&deg;C</p>\
+	<p>Teplota 1: %02d&deg;C</p>\
+	<p>Teplota 2: %02d&deg;C</p>\
   </body>\
 </html>",
 
-hr, min % 60, sec % 60, sensor[0], sensor[1]
+hr, min % 60, sec % 60, (int)sensor[0], (int)sensor[1]
 );
 	server.send(200, "text/html", temp);
 }
@@ -157,7 +157,7 @@ void loop() {
     } else {
       Serial.println(F("OK!"));
     }
-    if (! temperaturesOkoli.publish(sensor[0])) {
+    if (! temperaturesOkoli.publish(sensor[1])) {
       Serial.println(F("Failed"));
     } else {
       Serial.println(F("OK!"));
@@ -221,7 +221,7 @@ void mereni() {
     Serial.print(8);
     Serial.print("):");
     Serial.print(sensor[i]);
-    Serial.print("°C");
+    Serial.println("°C");
   }
 }
 
