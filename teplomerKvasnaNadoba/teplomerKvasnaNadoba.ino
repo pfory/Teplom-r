@@ -24,6 +24,12 @@ unsigned int const dsMeassureDelay=750; //delay between start meassurement and r
 const char *ssid = "Datlovo";
 const char *password = "Nu6kMABmseYwbCoJ7LyG";
 
+#define STATUS_NORMAL0                        0
+#define STATUS_NORMAL1                        1
+#define STATUS_AFTER_START                    2
+
+byte hb=STATUS_AFTER_START;
+
 ESP8266WebServer server(80);
 
 #define AIO_SERVER      "192.168.1.56"
@@ -97,11 +103,14 @@ void handleNotFound() {
 	server.send(404, "text/plain", message);
 }
 
-
+#define     VERSION                      "0.2"
+#define     SW_NAME                      "Kvasná nádoba"
 
 void setup() {
   Serial.begin(SERIALSPEED);
-  Serial.println("Kvasna nadoba");
+  Serial.print(F(SW_NAME));
+  Serial.print(F(" "));
+  Serial.println(F(VERSION));
   
   dsInit();
   WiFi.begin(ssid, password);
@@ -161,6 +170,22 @@ void loop() {
       Serial.println(F("Failed"));
     } else {
       Serial.println(F("OK!"));
+    }
+    if (! temperaturesHeartBeat.publish(hb)) {
+      Serial.println(F("Failed"));
+    } else {
+      Serial.println(F("OK!"));
+    }  
+    if (! temperaturesVersionSW.publish(VERSION)) {
+      Serial.println(F("Failed"));
+    } else {
+      Serial.println(F("OK!"));
+    }  
+
+    if (hb==STATUS_NORMAL0) {
+      hb=STATUS_NORMAL1;
+    } else {
+      hb=STATUS_NORMAL0;
     }
   }
   // ping the server to keep the mqtt connection alive
