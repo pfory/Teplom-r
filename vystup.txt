@@ -1,0 +1,16 @@
+Found 5 DS18B20 device(s).......
+Connected to Datlovo
+IP address: 192.168.1.59
+HTTP server started
+Connecting to MQTT... MQTT Connected!
+Sensor 0 (28.FF.94.27.74.16.04.40) - 24.19 C
+Sensor 1 (28.FF.A5.68.74.16.03.F0) - 24.25 C
+Sensor 2 (28.FF.E5.55.74.16.04.4F) - 24.06 C
+Sensor 3 (28.FF.6D.2F.73.16.05.2D) - 24.25 C
+Sensor 4 (28.FF.5D.17.74.16.04.D9) - 24.12 C
+Send temperature 24.19 of sensor 0 to MQTT broker, topic  return  OK!
+Send temperature 24.25 of sensor 1 to MQTT broker, topic  return  OK!
+Send temperature 24.06 of sensor 2 to MQTT broker, topic  return  OK!
+Send temperature 24.25 of sensor 3 to MQTT broker, topic  return  OK!
+Send temperature 24.12 of sensor 4 to MQTT broker, topic  return  OK!
+Sensor 0 (28.FF.94.27.74.16.04.40) - 24.12 C
