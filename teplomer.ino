@@ -1,3 +1,5 @@
+//kompilovat jako Generic ESP8266 Module
+
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
@@ -6,6 +8,18 @@
 #include <DallasTemperature.h>
 #include "Adafruit_MQTT.h"
 #include "Adafruit_MQTT_Client.h"
+#include <WiFiManager.h> 
+
+//for LED status
+#include <Ticker.h>
+Ticker ticker;
+
+void tick()
+{
+  //toggle state
+  int state = digitalRead(BUILTIN_LED);  // get the current state of GPIO1 pin
+  digitalWrite(BUILTIN_LED, !state);     // set pin to the opposite state
+}
 
 #define ONE_WIRE_BUS 4 //IO2
 #define TEMPERATURE_PRECISION 12
@@ -19,10 +33,24 @@ DeviceAddress tempDeviceAddresses[NUMBER_OF_DEVICES];
 unsigned int numberOfDevices; // Number of temperature devices found
 float sensor[NUMBER_OF_DEVICES];
 
-unsigned int const dsMeassureDelay=750; //delay between start meassurement and read valid data in ms
+unsigned int const dsMeassureDelay        = 750; //delay between start meassurement and read valid data in ms
 
-const char *ssid = "Datlovo";
-const char *password = "Nu6kMABmseYwbCoJ7LyG";
+unsigned long milisLastRunMinOld          = 0;
+
+#define verbose
+#ifdef verbose
+ #define DEBUG_PRINT(x)         Serial.print (x)
+ #define DEBUG_PRINTDEC(x)      Serial.print (x, DEC)
+ #define DEBUG_PRINTHEX(x)      Serial.print (x, HEX)
+ #define DEBUG_PRINTLN(x)       Serial.println (x)
+ #define DEBUG_PRINTF(x, y)     Serial.printf (x, y)
+ #define PORTSPEED 115200
+#else
+ #define DEBUG_PRINT(x)
+ #define DEBUG_PRINTDEC(x)
+ #define DEBUG_PRINTLN(x)
+ #define DEBUG_PRINTF(x, y)
+#endif 
 
 ESP8266WebServer server(80);
 
@@ -35,27 +63,43 @@ WiFiClient client;
 
 Adafruit_MQTT_Client mqtt(&client, AIO_SERVER, AIO_SERVERPORT, AIO_USERNAME, AIO_KEY);
 
-unsigned int const sendTimeDelay=30000;
-signed long lastSendTime = sendTimeDelay * -1;
+unsigned int const sendTimeDelay            = 300000;
+signed long lastSendTime = sendTimeDelay *    -1;
 
 /****************************** Feeds ***************************************/
-Adafruit_MQTT_Publish temperaturesLivingRoom = Adafruit_MQTT_Publish(&mqtt,  "/home/bedNew/esp03T/tLivingRoom");
-Adafruit_MQTT_Publish temperaturesBedRoomNew = Adafruit_MQTT_Publish(&mqtt,  "/home/bedNew/esp03T/tBedRoomNew");
-Adafruit_MQTT_Publish temperaturesBedRoomOld = Adafruit_MQTT_Publish(&mqtt,  "/home/bedNew/esp03T/tBedRoomOld");
-Adafruit_MQTT_Publish temperaturesCorridor = Adafruit_MQTT_Publish(&mqtt,  "/home/bedNew/esp03T/tCorridor");
-Adafruit_MQTT_Publish temperaturesHall = Adafruit_MQTT_Publish(&mqtt,  "/home/bedNew/esp03T/tHall");
-Adafruit_MQTT_Publish temperaturesBath = Adafruit_MQTT_Publish(&mqtt,  "/home/bedNew/esp03T/tBath");
-Adafruit_MQTT_Publish temperaturesWorkRoom = Adafruit_MQTT_Publish(&mqtt,  "/home/bedNew/esp03T/tWorkRoom");
-Adafruit_MQTT_Publish temperaturesAttic = Adafruit_MQTT_Publish(&mqtt,  "/home/bedNew/esp03T/tAttic");
-Adafruit_MQTT_Publish temperaturesVersionSW = Adafruit_MQTT_Publish(&mqtt,  "/home/bedNew/esp03T/VersionSW");
-Adafruit_MQTT_Publish temperaturesHeartBeat= Adafruit_MQTT_Publish(&mqtt,  "/home/bedNew/esp03T/HeartBeat");
+Adafruit_MQTT_Publish temperaturesLivingRoom = Adafruit_MQTT_Publish(&mqtt,  "/home/bedNew/esp03/tLivingRoom");
+Adafruit_MQTT_Publish temperaturesBedRoomNew = Adafruit_MQTT_Publish(&mqtt,  "/home/bedNew/esp03/tBedRoomNew");
+Adafruit_MQTT_Publish temperaturesBedRoomOld = Adafruit_MQTT_Publish(&mqtt,  "/home/bedNew/esp03/tBedRoomOld");
+Adafruit_MQTT_Publish temperaturesCorridor = Adafruit_MQTT_Publish(&mqtt,  "/home/bedNew/esp03/tCorridor");
+Adafruit_MQTT_Publish temperaturesHall = Adafruit_MQTT_Publish(&mqtt,  "/home/bedNew/esp03/tHall");
+Adafruit_MQTT_Publish temperaturesBath = Adafruit_MQTT_Publish(&mqtt,  "/home/bedNew/esp03/tBath");
+Adafruit_MQTT_Publish temperaturesWorkRoom = Adafruit_MQTT_Publish(&mqtt,  "/home/bedNew/esp03/tWorkRoom");
+Adafruit_MQTT_Publish temperaturesAttic = Adafruit_MQTT_Publish(&mqtt,  "/home/bedNew/esp03/tAttic");
+Adafruit_MQTT_Publish verSW = Adafruit_MQTT_Publish(&mqtt,  "/home/bedNew/esp03/VersionSW");
+Adafruit_MQTT_Publish hb= Adafruit_MQTT_Publish(&mqtt,  "/home/bedNew/esp03/HeartBeat");
 
 // Setup a feed called 'onoff' for subscribing to changes.
 //Adafruit_MQTT_Subscribe onoffbutton = Adafruit_MQTT_Subscribe(&mqtt, AIO_USERNAME "/feeds/onoff");
 
-#define SERIALSPEED 115200
-
 void MQTT_connect(void);
+
+IPAddress _ip           = IPAddress(192, 168, 1, 110);
+IPAddress _gw           = IPAddress(192, 168, 1, 1);
+IPAddress _sn           = IPAddress(255, 255, 255, 0);
+
+//gets called when WiFiManager enters configuration mode
+void configModeCallback (WiFiManager *myWiFiManager) {
+  Serial.println("Entered config mode");
+  Serial.println(WiFi.softAPIP());
+  //if you used auto generated SSID, print it
+  Serial.println(myWiFiManager->getConfigPortalSSID());
+  //entered config mode, make led toggle faster
+  ticker.attach(0.2, tick);
+}
+
+float versionSW                   = 0.6;
+String versionSWString            = "Teploty v";
+uint32_t heartBeat                = 0;
 
 
 void handleRoot()
@@ -109,23 +153,61 @@ void handleNotFound() {
 
 
 void setup() {
-  Serial.begin(SERIALSPEED);
-  Serial.println("Teploty");
+#ifdef verbose
+  Serial.begin(PORTSPEED);
+#endif
+  DEBUG_PRINTLN();
+  DEBUG_PRINT(versionSWString);
+  DEBUG_PRINTLN(versionSW);
+  //set led pin as output
+  pinMode(BUILTIN_LED, OUTPUT);
+  // start ticker with 0.5 because we start in AP mode and try to connect
+  ticker.attach(0.6, tick);
   
   dsInit();
-  WiFi.begin(ssid, password);
 
-	// Wait for connection
-	while (WiFi.status() != WL_CONNECTED) {
-		delay(500);
-		Serial.print(".");
-	}
+  DEBUG_PRINTLN(ESP.getResetReason());
+  if (ESP.getResetReason()=="Software/System restart") {
+    heartBeat=1;
+  } else if (ESP.getResetReason()=="Power on") {
+    heartBeat=2;
+  } else if (ESP.getResetReason()=="External System") {
+    heartBeat=3;
+  } else if (ESP.getResetReason()=="Hardware Watchdog") {
+    heartBeat=4;
+  } else if (ESP.getResetReason()=="Exception") {
+    heartBeat=5;
+  } else if (ESP.getResetReason()=="Software Watchdog") {
+    heartBeat=6;
+  } else if (ESP.getResetReason()=="Deep-Sleep Wake") {
+    heartBeat=7;
+  }
 
-	Serial.println("");
-	Serial.print("Connected to ");
-	Serial.println(ssid);
-	Serial.print("IP address: ");
-	Serial.println(WiFi.localIP());
+  //WiFiManager
+  //Local intialization. Once its business is done, there is no need to keep it around
+  WiFiManager wifiManager;
+  //reset settings - for testing
+  //wifiManager.resetSettings();
+
+  //set callback that gets called when connecting to previous WiFi fails, and enters Access Point mode
+  wifiManager.setAPCallback(configModeCallback);
+  
+  //Serial.println(ESP.getFlashChipRealSize);
+  //Serial.println(ESP.getCpuFreqMHz);
+  //WiFi.begin(ssid, password);
+  wifiManager.setSTAStaticIPConfig(_ip, _gw, _sn);
+  
+  if (!wifiManager.autoConnect("Anemometer", "password")) {
+    DEBUG_PRINTLN("failed to connect, we should reset as see if it connects");
+    delay(3000);
+    ESP.reset();
+    delay(5000);
+  }
+
+	DEBUG_PRINTLN("");
+	DEBUG_PRINT("Connected to ");
+	DEBUG_PRINT("IP address: ");
+	DEBUG_PRINTLN(WiFi.localIP());
   
   server.on("/", handleRoot);
 	server.on("/inline", []() {
@@ -133,7 +215,11 @@ void setup() {
 	});
 	server.onNotFound(handleNotFound);
 	server.begin();
-	Serial.println("HTTP server started");
+	DEBUG_PRINTLN("HTTP server started");
+  
+  ticker.detach();
+  //keep LED on
+  digitalWrite(BUILTIN_LED, LOW);
 }
 
 uint32_t x=0;
@@ -147,8 +233,8 @@ void loop() {
   // Adafruit_MQTT_Subscribe *subscription;
   // while ((subscription = mqtt.readSubscription(5000))) {
     // if (subscription == &onoffbutton) {
-      // Serial.print(F("Got: "));
-      // Serial.println((char *)onoffbutton.lastread);
+      // DEBUG_PRINT(F("Got: "));
+      // DEBUG_PRINTLN((char *)onoffbutton.lastread);
     // }
   // }
 
@@ -171,20 +257,20 @@ void loop() {
 void dsInit(void) {
   dsSensors.begin();
   numberOfDevices = dsSensors.getDeviceCount();
-  Serial.print("Found ");
-  Serial.print(numberOfDevices);
-  Serial.print(" DS18B20 device(s).");
+  DEBUG_PRINT("Found ");
+  DEBUG_PRINT(numberOfDevices);
+  DEBUG_PRINT(" DS18B20 device(s).");
 
   // Loop through each device, print out address
   for (byte i=0;i<numberOfDevices; i++) {
       // Search the wire for address
     if (dsSensors.getAddress(tempDeviceAddress, i)) {
       memcpy(tempDeviceAddresses[i],tempDeviceAddress,8);
-      //Serial.println(tempDeviceAddresses[i]);
+      //DEBUG_PRINTLN(tempDeviceAddresses[i]);
     }
     else
     {
-      //Serial.println("Unable to get device address for sensor " + i);
+      //DEBUG_PRINTLN("Unable to get device address for sensor " + i);
     }
   }
   dsSensors.setResolution(12);
@@ -204,76 +290,93 @@ void mereni() {
       }
     }
     sensor[i]=tempTemp;
-    Serial.print("Sensor ");
-    Serial.print(i);
-    Serial.print(" (");
+    DEBUG_PRINT("Sensor ");
+    DEBUG_PRINT(i);
+    DEBUG_PRINT(" (");
     if (dsSensors.getAddress(tempDeviceAddress, i)) {
       for (byte j=0; j<8; j++) {
         if (tempDeviceAddress[j] < 16) {
-          Serial.print(0);
+          DEBUG_PRINT(0);
         }
-        Serial.print(tempDeviceAddress[j], HEX);
-        if (j<7) Serial.print(".");
+        DEBUG_PRINTHEX(tempDeviceAddress[j]);
+        if (j<7) DEBUG_PRINT(".");
       }
     }
-    Serial.print(") - ");
-    Serial.print(sensor[i]);
-    Serial.println(" C");
+    DEBUG_PRINT(") - ");
+    DEBUG_PRINT(sensor[i]);
+    DEBUG_PRINTLN(" C");
   }
+  
+  if (millis() - milisLastRunMinOld > 60000) {
+    milisLastRunMinOld = millis();
+    if (! hb.publish(heartBeat)) {
+      DEBUG_PRINTLN("Send HB failed");
+    } else {
+      DEBUG_PRINTLN("Send HB OK!");
+    }
+    heartBeat++;
+    if (! verSW.publish(versionSW)) {
+      DEBUG_PRINT(F("Send verSW failed!"));
+    } else {
+      DEBUG_PRINT(F("Send verSW OK!"));
+    }
+  }
+
+  
   for (byte i=0; i<numberOfDevices; i++) {
-    Serial.print("Send temperature ");
-    Serial.print(sensor[i]);
-    Serial.print(" of sensor ");
-    Serial.print(i);
-    Serial.print(" to MQTT broker, topic ");
-    Serial.print(" return  ");
+    DEBUG_PRINT("Send temperature ");
+    DEBUG_PRINT(sensor[i]);
+    DEBUG_PRINT(" of sensor ");
+    DEBUG_PRINT(i);
+    DEBUG_PRINT(" to MQTT broker, topic ");
+    DEBUG_PRINT(" return  ");
     if (i==0) {
       if (! temperaturesLivingRoom.publish(sensor[i])) {
-        Serial.println("failed");
+        DEBUG_PRINTLN("failed");
       } else {
-        Serial.println("OK!");
+        DEBUG_PRINTLN("OK!");
       }
     }
     if (i==1) {
       if (! temperaturesAttic.publish(sensor[i])) {
-        Serial.println("failed");
+        DEBUG_PRINTLN("failed");
       } else {
-        Serial.println("OK!");
+        DEBUG_PRINTLN("OK!");
       }
     }
     if (i==2) {
       if (! temperaturesBath.publish(sensor[i])) {
-        Serial.println("failed");
+        DEBUG_PRINTLN("failed");
       } else {
-        Serial.println("OK!");
+        DEBUG_PRINTLN("OK!");
       }
     }
     if (i==3) {
       if (! temperaturesBedRoomNew.publish(sensor[i])) {
-        Serial.println("failed");
+        DEBUG_PRINTLN("failed");
       } else {
-        Serial.println("OK!");
+        DEBUG_PRINTLN("OK!");
       }
     }
     if (i==4) {
       if (! temperaturesBedRoomOld.publish(sensor[i])) {
-        Serial.println("failed");
+        DEBUG_PRINTLN("failed");
       } else {
-        Serial.println("OK!");
+        DEBUG_PRINTLN("OK!");
       }
     }
     if (i==5) {
       if (! temperaturesHall.publish(sensor[i])) {
-        Serial.println("failed");
+        DEBUG_PRINTLN("failed");
       } else {
-        Serial.println("OK!");
+        DEBUG_PRINTLN("OK!");
       }
     }
     if (i==6) {
       if (! temperaturesWorkRoom.publish(sensor[i])) {
-        Serial.println("failed");
+        DEBUG_PRINTLN("failed");
       } else {
-        Serial.println("OK!");
+        DEBUG_PRINTLN("OK!");
       }
     }
   }
@@ -289,12 +392,12 @@ void MQTT_connect() {
     return;
   }
 
-  Serial.print("Connecting to MQTT... ");
+  DEBUG_PRINT("Connecting to MQTT... ");
 
   uint8_t retries = 3;
   while ((ret = mqtt.connect()) != 0) { // connect will return 0 for connected
-       Serial.println(mqtt.connectErrorString(ret));
-       Serial.println("Retrying MQTT connection in 5 seconds...");
+       DEBUG_PRINTLN(mqtt.connectErrorString(ret));
+       DEBUG_PRINTLN("Retrying MQTT connection in 5 seconds...");
        mqtt.disconnect();
        delay(5000);  // wait 5 seconds
        retries--;
@@ -303,5 +406,5 @@ void MQTT_connect() {
          while (1);
        }
   }
-  Serial.println("MQTT Connected!");
+  DEBUG_PRINTLN("MQTT Connected!");
 }
