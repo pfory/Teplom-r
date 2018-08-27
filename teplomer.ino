@@ -97,7 +97,7 @@ void configModeCallback (WiFiManager *myWiFiManager) {
   ticker.attach(0.2, tick);
 }
 
-float versionSW                   = 0.6;
+float versionSW                   = 0.61;
 String versionSWString            = "Teploty v";
 uint32_t heartBeat                = 0;
 
@@ -188,6 +188,7 @@ void setup() {
   WiFiManager wifiManager;
   //reset settings - for testing
   //wifiManager.resetSettings();
+  wifiManager.setConnectTimeout(600); //5min
 
   //set callback that gets called when connecting to previous WiFi fails, and enters Access Point mode
   wifiManager.setAPCallback(configModeCallback);
@@ -197,7 +198,7 @@ void setup() {
   //WiFi.begin(ssid, password);
   wifiManager.setSTAStaticIPConfig(_ip, _gw, _sn);
   
-  if (!wifiManager.autoConnect("Anemometer", "password")) {
+  if (!wifiManager.autoConnect("Teplomer", "password")) {
     DEBUG_PRINTLN("failed to connect, we should reset as see if it connects");
     delay(3000);
     ESP.reset();
