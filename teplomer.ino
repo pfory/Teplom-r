@@ -60,6 +60,7 @@ ESP8266WebServer server(80);
 #define AIO_KEY         "hanka12"
 
 WiFiClient client;
+WiFiManager wifiManager;
 
 Adafruit_MQTT_Client mqtt(&client, AIO_SERVER, AIO_SERVERPORT, AIO_USERNAME, AIO_KEY);
 
@@ -185,7 +186,6 @@ void setup() {
 
   //WiFiManager
   //Local intialization. Once its business is done, there is no need to keep it around
-  WiFiManager wifiManager;
   //reset settings - for testing
   //wifiManager.resetSettings();
   wifiManager.setConnectTimeout(600); //5min
@@ -197,18 +197,12 @@ void setup() {
   //Serial.println(ESP.getCpuFreqMHz);
   //WiFi.begin(ssid, password);
   wifiManager.setSTAStaticIPConfig(_ip, _gw, _sn);
-  
   if (!wifiManager.autoConnect("Teplomer", "password")) {
     DEBUG_PRINTLN("failed to connect, we should reset as see if it connects");
     delay(3000);
     ESP.reset();
     delay(5000);
   }
-
-	DEBUG_PRINTLN("");
-	DEBUG_PRINT("Connected to ");
-	DEBUG_PRINT("IP address: ");
-	DEBUG_PRINTLN(WiFi.localIP());
   
   server.on("/", handleRoot);
 	server.on("/inline", []() {
@@ -220,7 +214,7 @@ void setup() {
   
   ticker.detach();
   //keep LED on
-  digitalWrite(BUILTIN_LED, LOW);
+  digitalWrite(BUILTIN_LED, HIGH);
 }
 
 uint32_t x=0;
@@ -239,6 +233,21 @@ void loop() {
     // }
   // }
 
+  if (millis() - milisLastRunMinOld > 60000) {
+    milisLastRunMinOld = millis();
+    if (! hb.publish(heartBeat)) {
+      DEBUG_PRINTLN("Send HB failed");
+    } else {
+      DEBUG_PRINTLN("Send HB OK!");
+    }
+    heartBeat++;
+    if (! verSW.publish(versionSW)) {
+      DEBUG_PRINT(F("Send verSW failed!"));
+    } else {
+      DEBUG_PRINT(F("Send verSW OK!"));
+    }
+  }
+  
  if (millis() - lastSendTime >= sendTimeDelay) {
     lastSendTime = millis();
     
@@ -307,23 +316,7 @@ void mereni() {
     DEBUG_PRINT(sensor[i]);
     DEBUG_PRINTLN(" C");
   }
-  
-  if (millis() - milisLastRunMinOld > 60000) {
-    milisLastRunMinOld = millis();
-    if (! hb.publish(heartBeat)) {
-      DEBUG_PRINTLN("Send HB failed");
-    } else {
-      DEBUG_PRINTLN("Send HB OK!");
-    }
-    heartBeat++;
-    if (! verSW.publish(versionSW)) {
-      DEBUG_PRINT(F("Send verSW failed!"));
-    } else {
-      DEBUG_PRINT(F("Send verSW OK!"));
-    }
-  }
-
-  
+ 
   for (byte i=0; i<numberOfDevices; i++) {
     DEBUG_PRINT("Send temperature ");
     DEBUG_PRINT(sensor[i]);
