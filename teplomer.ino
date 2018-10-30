@@ -17,7 +17,7 @@
 #define ota
 #ifdef ota
 #include <ArduinoOTA.h>
-#define HOSTNAMEOTA   "anemometer"
+#define HOSTNAMEOTA   "teplomer"
 #endif
 
 //#define serverHTTP
