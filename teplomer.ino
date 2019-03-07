@@ -95,8 +95,6 @@ const unsigned long   sendStatDelay         = 60000;
 
 uint32_t heartBeat                          = 0;
 
-<<<<<<< HEAD
-=======
 //SW name & version
 #define     VERSION                       "0.72"
 #define     SW_NAME                       "Teploty"
@@ -104,7 +102,6 @@ uint32_t heartBeat                          = 0;
 //flag for saving data
 bool shouldSaveConfig = false;
 
->>>>>>> 97ba86b30b6120e8b940fb53ffe0249bcc3f0368
 bool isDebugEnabled() {
 #ifdef verbose
   return true;
