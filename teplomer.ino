@@ -57,7 +57,6 @@ float sensor[NUMBER_OF_DEVICES];
 unsigned int const dsMeassureDelay        = 750; //delay between start meassurement and read valid data in ms
 
 
-
 #define verbose
 #ifdef verbose
  #define PORTSPEED 115200
@@ -94,12 +93,16 @@ DoubleResetDetector drd(DRD_TIMEOUT, DRD_ADDRESS);
 const unsigned long   sendDelay             = 60000; //in ms
 const unsigned long   sendStatDelay         = 60000;
 
-float versionSW                             = 0.7;
-char versionSWString[]                      = "Teploty v"; //SW name & version
 uint32_t heartBeat                          = 0;
 
-bool isDebugEnabled()
-{
+//SW name & version
+#define     VERSION                       "0.72"
+#define     SW_NAME                       "Teploty"
+
+//flag for saving data
+bool shouldSaveConfig = false;
+
+bool isDebugEnabled() {
 #ifdef verbose
   return true;
 #endif // verbose
@@ -109,7 +112,6 @@ bool isDebugEnabled()
 //for LED status
 #include <Ticker.h>
 Ticker ticker;
-
 
 #include <timer.h>
 auto timer = timer_create_default(); // create a timer with default settings
@@ -159,37 +161,15 @@ void handleRoot() {
 }
 #endif
 
-void tick()
-{
-  //toggle state
-  int state = digitalRead(BUILTIN_LED);  // get the current state of GPIO1 pin
-  digitalWrite(BUILTIN_LED, !state);     // set pin to the opposite state
-}
-  
-//flag for saving data
-bool shouldSaveConfig = false;
+WiFiManager wifiManager;
 
-//callback notifying us of the need to save config
-void saveConfigCallback () {
-  DEBUG_PRINTLN("Should save config");
-  shouldSaveConfig = true;
-}
-
-//gets called when WiFiManager enters configuration mode
-void configModeCallback (WiFiManager *myWiFiManager) {
-  DEBUG_PRINTLN("Entered config mode");
-  DEBUG_PRINTLN(WiFi.softAPIP());
-  //if you used auto generated SSID, print it
-  DEBUG_PRINTLN(myWiFiManager->getConfigPortalSSID());
-  //entered config mode, make led toggle faster
-  ticker.attach(0.2, tick);
-}
-
+//----------------------------------------------------- S E T U P -----------------------------------------------------------
 void setup() {
   // put your setup code here, to run once:
   SERIAL_BEGIN;
-  DEBUG_PRINT(versionSWString);
-  DEBUG_PRINTLN(versionSW);
+  DEBUG_PRINT(F(SW_NAME));
+  DEBUG_PRINT(F(" "));
+  DEBUG_PRINTLN(F(VERSION));
  
   pinMode(BUILTIN_LED, OUTPUT);
   ticker.attach(1, tick);
@@ -217,11 +197,9 @@ void setup() {
   
   //WiFiManager
   //Local intialization. Once its business is done, there is no need to keep it around
-  WiFiManager wifiManager;
   //reset settings - for testing
   //wifiManager.resetSettings();
   
-  //wifiManager.setSTAStaticIPConfig(_ip, _gw, _sn);
   IPAddress _ip,_gw,_sn;
   _ip.fromString(static_ip);
   _gw.fromString(static_gw);
@@ -233,9 +211,6 @@ void setup() {
   DEBUG_PRINTLN(_gw);
   DEBUG_PRINTLN(_sn);
 
-  //if (WiFi.SSID()!="") wifiManager.setConfigPortalTimeout(60); //If no access point name has been previously entered disable timeout.
-
-  
   //set callback that gets called when connecting to previous WiFi fails, and enters Access Point mode
   wifiManager.setAPCallback(configModeCallback);
   
@@ -366,8 +341,6 @@ void setup() {
   digitalWrite(BUILTIN_LED, HIGH);
 }
 
-
-
 void loop() {
   timer.tick(); // tick the timer
 #ifdef serverHTTP
@@ -379,9 +352,29 @@ void loop() {
 #endif
 }
 
+void tick() {
+  //toggle state
+  int state = digitalRead(BUILTIN_LED);  // get the current state of GPIO1 pin
+  digitalWrite(BUILTIN_LED, !state);     // set pin to the opposite state
+}
+  
+//callback notifying us of the need to save config
+void saveConfigCallback() {
+  DEBUG_PRINTLN("Should save config");
+  shouldSaveConfig = true;
+}
 
-void validateInput(const char *input, char *output)
-{
+//gets called when WiFiManager enters configuration mode
+void configModeCallback(WiFiManager *myWiFiManager) {
+  DEBUG_PRINTLN("Entered config mode");
+  DEBUG_PRINTLN(WiFi.softAPIP());
+  //if you used auto generated SSID, print it
+  DEBUG_PRINTLN(myWiFiManager->getConfigPortalSSID());
+  //entered config mode, make led toggle faster
+  ticker.attach(0.2, tick);
+}
+
+void validateInput(const char *input, char *output) {
   String tmp = input;
   tmp.trim();
   tmp.replace(' ', '_');
@@ -393,30 +386,28 @@ bool saveConfig() {
 
   // if SPIFFS is not usable
   if (!SPIFFS.begin() || !SPIFFS.exists(CFGFILE) ||
-      !SPIFFS.open(CFGFILE, "w"))
-  {
+      !SPIFFS.open(CFGFILE, "w")) {
     DEBUG_PRINTLN(F("Need to format SPIFFS: "));
     SPIFFS.end();
     SPIFFS.begin();
     DEBUG_PRINTLN(SPIFFS.format());
   }
 
-  DynamicJsonBuffer jsonBuffer;
-  JsonObject &json = jsonBuffer.createObject();
+  StaticJsonDocument<1024> doc;
 
-  json["MQTT_server"] = mqtt_server;
-  json["MQTT_port"]   = mqtt_port;
-  json["MQTT_uname"]  = mqtt_username;
-  json["MQTT_pwd"]    = mqtt_key;
-  json["MQTT_base"]   = mqtt_base;
+  doc["MQTT_server"] = mqtt_server;
+  doc["MQTT_port"]   = mqtt_port;
+  doc["MQTT_uname"]  = mqtt_username;
+  doc["MQTT_pwd"]    = mqtt_key;
+  doc["MQTT_base"]   = mqtt_base;
   
-  json["ip"] = WiFi.localIP().toString();
-  json["gateway"] = WiFi.gatewayIP().toString();
-  json["subnet"] = WiFi.subnetMask().toString();
+  doc["ip"] = WiFi.localIP().toString();
+  doc["gateway"] = WiFi.gatewayIP().toString();
+  doc["subnet"] = WiFi.subnetMask().toString();
 
   // Store current Wifi credentials
-  // json["SSID"]        = WiFi.SSID();
-  // json["PSK"]         = WiFi.psk();
+  // doc["SSID"]        = WiFi.SSID();
+  // doc["PSK"]         = WiFi.psk();
 
   File configFile = SPIFFS.open(CFGFILE, "w+");
   if (!configFile) {
@@ -425,9 +416,9 @@ bool saveConfig() {
     return false;
   } else {
     if (isDebugEnabled) {
-      json.printTo(Serial);
+      serializeJson(doc, Serial);
     }
-    json.printTo(configFile);
+    serializeJson(doc, configFile);
     configFile.close();
     SPIFFS.end();
     DEBUG_PRINTLN(F("\nSaved successfully"));
@@ -451,49 +442,53 @@ bool readConfig() {
         std::unique_ptr<char[]> buf(new char[size]);
 
         configFile.readBytes(buf.get(), size);
-        DynamicJsonBuffer jsonBuffer;
-        JsonObject &json = jsonBuffer.parseObject(buf.get());
-
-        if (json.success()) {
+        DynamicJsonDocument doc(1024);
+        DeserializationError error = deserializeJson(doc, configFile);
+        JsonObject obj=doc.as<JsonObject>();
+        
+        if (error) {
+          DEBUG_PRINTLN(F("Failed to read file, using default configuration"));
+          return false;
+        } else {
           DEBUG_PRINTLN(F("Parsed json"));
           
-          if (json.containsKey("MQTT_server")) {
-            strcpy(mqtt_server, json["MQTT_server"]);
+          if (obj.containsKey("MQTT_server")) {
+            strcpy(mqtt_server, obj["MQTT_server"]);
             DEBUG_PRINT(F("MQTT server: "));
             DEBUG_PRINTLN(mqtt_server);
           }
-          if (json.containsKey("MQTT_port")) {
-            mqtt_port = json["MQTT_port"];
+          if (obj.containsKey("MQTT_port")) {
+            mqtt_port = obj["MQTT_port"];
             DEBUG_PRINT(F("MQTT port: "));
             DEBUG_PRINTLN(mqtt_port);
           }
-          if (json.containsKey("MQTT_uname")) {
-            strcpy(mqtt_username, json["MQTT_uname"]);
+          if (obj.containsKey("MQTT_uname")) {
+            strcpy(mqtt_username, obj["MQTT_uname"]);
             DEBUG_PRINT(F("MQTT username: "));
             DEBUG_PRINTLN(mqtt_username);
           }
-          if (json.containsKey("MQTT_pwd")) {
-            strcpy(mqtt_key, json["MQTT_pwd"]);
+          if (obj.containsKey("MQTT_pwd")) {
+            strcpy(mqtt_key, obj["MQTT_pwd"]);
             DEBUG_PRINT(F("MQTT password: "));
             DEBUG_PRINTLN(mqtt_key);
           }
-          if (json.containsKey("MQTT_base")) {
-            strcpy(mqtt_base, json["MQTT_base"]);
+          if (obj.containsKey("MQTT_base")) {
+            strcpy(mqtt_base, obj["MQTT_base"]);
             DEBUG_PRINT(F("MQTT base: "));
             DEBUG_PRINTLN(mqtt_base);
           }
-          // if (json.containsKey("SSID")) {
-            // my_ssid = (const char *)json["SSID"];
+          // if (obj.containsKey("SSID")) {
+            // my_ssid = (const char *)obj["SSID"];
           // }
-          // if (json.containsKey("PSK")) {
-            // my_psk = (const char *)json["PSK"];
+          // if (obj.containsKey("PSK")) {
+            // my_psk = (const char *)obj["PSK"];
           // }
           
-          if(json["ip"]) {
+          if(obj["ip"]) {
             DEBUG_PRINTLN("setting custom ip from config");
-            strcpy(static_ip, json["ip"]);
-            strcpy(static_gw, json["gateway"]);
-            strcpy(static_sn, json["subnet"]);
+            strcpy(static_ip, obj["ip"]);
+            strcpy(static_gw, obj["gateway"]);
+            strcpy(static_sn, obj["subnet"]);
             DEBUG_PRINTLN(static_ip);
           } else {
             DEBUG_PRINTLN("no custom ip in config");
@@ -501,15 +496,9 @@ bool readConfig() {
 
           
           DEBUG_PRINTLN(F("Parsed config:"));
-          if (isDebugEnabled) {
-            json.printTo(Serial);
-            DEBUG_PRINTLN();
-          }
+          DEBUG_PRINTLN(error.c_str());
+          DEBUG_PRINTLN();
           return true;
-        }
-        else {
-          DEBUG_PRINTLN(F("ERROR: failed to load json config"));
-          return false;
         }
       }
       DEBUG_PRINTLN(F("ERROR: unable to open config file"));
@@ -553,7 +542,7 @@ bool sendStatisticHA(void *) {
   DEBUG_PRINTLN(F(" - I am sending statistic to HA"));
 
   SenderClass sender;
-  sender.add("VersionSW", versionSW);
+  sender.add("VersionSW", VERSION);
   //sender.add("Napeti",  ESP.getVcc());
   sender.add("HeartBeat", heartBeat++);
   sender.add("RSSI", WiFi.RSSI());
@@ -571,8 +560,7 @@ bool sendStatisticHA(void *) {
 const int NTP_PACKET_SIZE = 48; // NTP time is in the first 48 bytes of message
 byte packetBuffer[NTP_PACKET_SIZE]; //buffer to hold incoming & outgoing packets
 
-time_t getNtpTime()
-{
+time_t getNtpTime() {
   //IPAddress ntpServerIP; // NTP server's ip address
   IPAddress ntpServerIP = IPAddress(195, 113, 144, 201);
 
@@ -620,8 +608,7 @@ time_t getNtpTime()
 }
 
 // send an NTP request to the time server at the given address
-void sendNTPpacket(IPAddress &address)
-{
+void sendNTPpacket(IPAddress &address) {
   // set all bytes in the buffer to 0
   memset(packetBuffer, 0, NTP_PACKET_SIZE);
   // Initialize values needed to form NTP request
@@ -642,7 +629,7 @@ void sendNTPpacket(IPAddress &address)
   EthernetUdp.endPacket();
 }
 
-void printDigits(int digits){
+void printDigits(int digits) {
   // utility function for digital clock display: prints preceding
   // colon and leading 0
   DEBUG_PRINT(":");
@@ -653,7 +640,7 @@ void printDigits(int digits){
 
 #endif
 
-void printSystemTime(){
+void printSystemTime() {
 #ifdef time
   DEBUG_PRINT(day());
   DEBUG_PRINT(".");
