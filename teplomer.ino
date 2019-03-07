@@ -528,6 +528,7 @@ bool sendDataHA(void *) {
   sender.add("tBath", sensor[2]);
   sender.add("tWorkRoom", sensor[6]);
   sender.add("tAttic", sensor[1]);
+  sender.add("#sensors", numberOfDevices);
   
   DEBUG_PRINTLN(F("Calling MQTT"));
 
