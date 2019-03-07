@@ -26,7 +26,7 @@
 ESP8266WebServer server(80);
 #endif
 
-//#define time
+#define time
 #ifdef time
 #include <TimeLib.h>
 #include <Timezone.h>
@@ -42,7 +42,7 @@ time_t getNtpTime();
 #endif
 
 
-#define ONE_WIRE_BUS 2 //IO2
+#define ONE_WIRE_BUS D7 //IO2
 #define TEMPERATURE_PRECISION 12
 OneWire onewire(ONE_WIRE_BUS); // pin for onewire DALLAS bus
 DallasTemperature dsSensors(&onewire);
@@ -54,7 +54,7 @@ DeviceAddress tempDeviceAddresses[NUMBER_OF_DEVICES];
 unsigned int numberOfDevices; // Number of temperature devices found
 float sensor[NUMBER_OF_DEVICES];
 
-unsigned int const dsMeassureDelay        = 750; //delay between start meassurement and read valid data in ms
+//unsigned int const dsMeassureDelay        = 750; //delay between start meassurement and read valid data in ms
 
 
 
@@ -91,15 +91,14 @@ DoubleResetDetector drd(DRD_TIMEOUT, DRD_ADDRESS);
 
 #define CFGFILE "/config.json"
 
-const unsigned long   sendDelay             = 60000; //in ms
+const unsigned long   sendDelay             = 5000; //in ms
 const unsigned long   sendStatDelay         = 60000;
 
 float versionSW                             = 0.7;
 char versionSWString[]                      = "Teploty v"; //SW name & version
 uint32_t heartBeat                          = 0;
 
-bool isDebugEnabled()
-{
+bool isDebugEnabled() {
 #ifdef verbose
   return true;
 #endif // verbose
@@ -672,50 +671,97 @@ void dsInit(void) {
   numberOfDevices = dsSensors.getDeviceCount();
   DEBUG_PRINT("Found ");
   DEBUG_PRINT(numberOfDevices);
-  DEBUG_PRINT(" DS18B20 device(s).");
+  DEBUG_PRINTLN(" DS18B20 device(s).");
 
   // Loop through each device, print out address
   for (byte i=0;i<numberOfDevices; i++) {
+    if(dsSensors.getAddress(tempDeviceAddress, i)) {
+      DEBUG_PRINT("Found device ");
+      DEBUG_PRINTDEC(i);
+      DEBUG_PRINT(" with address: ");
+      printAddress(tempDeviceAddress);
+      DEBUG_PRINTLN();
+      dsSensors.setResolution(tempDeviceAddress, TEMPERATURE_PRECISION);
+      dsSensors.setWaitForConversion(false);
+    }
       // Search the wire for address
-    if (dsSensors.getAddress(tempDeviceAddress, i)) {
-      memcpy(tempDeviceAddresses[i],tempDeviceAddress,8);
-      //DEBUG_PRINTLN(tempDeviceAddresses[i]);
-    }
-    else
-    {
-      //DEBUG_PRINTLN("Unable to get device address for sensor " + i);
-    }
+    // if (dsSensors.getAddress(tempDeviceAddress, i)) {
+      // memcpy(tempDeviceAddresses[i],tempDeviceAddress,8);
+      // DEBUG_PRINTLN(tempDeviceAddresses[i]);
+    // }
+    // else
+    // {
+      // //DEBUG_PRINTLN("Unable to get device address for sensor " + i);
+    // }
   }
-  dsSensors.setResolution(12);
-  dsSensors.setWaitForConversion(false);
+}
+
+// function to print a device address
+void printAddress(DeviceAddress deviceAddress) {
+  for (uint8_t i = 0; i < 8; i++) {
+    if (deviceAddress[i] < 16) DEBUG_PRINT("0");
+    DEBUG_PRINTHEX(deviceAddress[i]);
+  }
+}
+
+// function to print the temperature for a device
+void printTemperature(DeviceAddress deviceAddress) {
+  // method 1 - slower
+  //DEBUG_PRINT("Temp C: ");
+  //DEBUG_PRINT(sensors.getTempC(deviceAddress));
+  //DEBUG_PRINT(" Temp F: ");
+  //DEBUG_PRINT(sensors.getTempF(deviceAddress)); // Makes a second call to getTempC and then converts to Fahrenheit
+
+  // method 2 - faster
+  float tempC = dsSensors.getTempC(deviceAddress);
+  DEBUG_PRINT("Temp C: ");
+  DEBUG_PRINT(tempC);
+  DEBUG_PRINT(" Temp F: ");
+  DEBUG_PRINTLN(DallasTemperature::toFahrenheit(tempC)); // Converts tempC to Fahrenheit
 }
 
 void mereni() {
-  dsSensors.requestTemperatures(); 
-  delay(dsMeassureDelay);
+  DEBUG_PRINT("Requesting temperatures...");
+  dsSensors.requestTemperatures(); // Send the command to get temperatures
+  DEBUG_PRINTLN("DONE");
+  //delay(dsMeassureDelay);
   for (byte i=0;i<numberOfDevices; i++) {
-    float tempTemp=-126;
-    for (byte j=0;j<10;j++) {
-      tempTemp = dsSensors.getTempC(tempDeviceAddresses[i]);
-      if (tempTemp>=-55) {
-        break;
-      }
+    if(dsSensors.getAddress(tempDeviceAddress, i)) {
+      // Output the device ID
+      DEBUG_PRINT("Temperature for device ");
+      DEBUG_PRINTDEC(i);
+      DEBUG_PRINT(" - ");
+      printAddress(tempDeviceAddress);
+      DEBUG_PRINT(": ");
+
+      // It responds almost immediately. Let's print out the data
+      printTemperature(tempDeviceAddress); // Use a simple function to print out the data
+
+      float tempTemp=-126;
+      sensor[i] = dsSensors.getTempC(tempDeviceAddress);
+    // for (byte j=0;j<10;j++) {
+      // if (tempTemp>=-55) {
+        // break;
+      // }
+    // }
+    // sensor[i]=tempTemp;
+    // DEBUG_PRINT("Sensor ");
+    // DEBUG_PRINT(i);
+    // DEBUG_PRINT(" (");
+    // if (dsSensors.getAddress(tempDeviceAddress, i)) {
+      // for (byte j=0; j<8; j++) {
+        // if (tempDeviceAddress[j] < 16) {
+          // DEBUG_PRINT(0);
+        // }
+        // DEBUG_PRINTHEX(tempDeviceAddress[j]);
+        // if (j<7) DEBUG_PRINT(".");
+      // }
+    // }
+    // DEBUG_PRINT(") - ");
+    // DEBUG_PRINT(sensor[i]);
+    // DEBUG_PRINTLN(" C");
     }
-    sensor[i]=tempTemp;
-    DEBUG_PRINT("Sensor ");
-    DEBUG_PRINT(i);
-    DEBUG_PRINT(" (");
-    if (dsSensors.getAddress(tempDeviceAddress, i)) {
-      for (byte j=0; j<8; j++) {
-        if (tempDeviceAddress[j] < 16) {
-          DEBUG_PRINT(0);
-        }
-        DEBUG_PRINTHEX(tempDeviceAddress[j]);
-        if (j<7) DEBUG_PRINT(".");
-      }
-    }
-    DEBUG_PRINT(") - ");
-    DEBUG_PRINT(sensor[i]);
-    DEBUG_PRINTLN(" C");
   }
 }
+
+
