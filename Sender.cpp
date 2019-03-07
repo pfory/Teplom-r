@@ -83,12 +83,9 @@ bool SenderClass::sendMQTT(String server, uint16_t port, String username, String
     }
     //MQTT publish values
     for (JsonPair kv : doc.as<JsonObject>()) {
-      DEBUG_PRINTLN("MQTT publish: " + name + "/" + kv.key().c_str() + "/" + kv.value().as<char*>());
+      DEBUG_PRINTLN("MQTT publish: " + name + "/" + kv.key().c_str() + ": " + kv.value().as<String>().c_str());
       _mqttClient.publish((name + "/" + kv.key().c_str()).c_str(), kv.value().as<String>().c_str());
-      //_mqttClient.publish((name + "/" + kv.key).c_str(), kv.value.as<String>().c_str());
       _mqttClient.loop(); //This should be called regularly to allow the client to process incoming messages and maintain its connection to the server.
-      // Serial.println(kv.key().c_str());
-      // Serial.println(kv.value().as<char*>());
     }
     
     DEBUG_PRINTLN(F("Closing MQTT connection"));

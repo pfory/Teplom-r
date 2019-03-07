@@ -1,7 +1,7 @@
 //TEPLOMERY chata
 /*
 */
-//kompilovat jako Generic ESP8266 Module
+//kompilovat jako Generic ESP8266 Module !!!!!!!!!!!1M 64k SPIFSS !!!!!!!!!!!!!!!!!!!!!!
 
 #include <ESP8266WiFi.h>          //https://github.com/esp8266/Arduino
 #include <WiFiManager.h>          //https://github.com/tzapu/WiFiManager
@@ -42,7 +42,7 @@ time_t getNtpTime();
 #endif
 
 
-#define ONE_WIRE_BUS D7 //IO2
+#define ONE_WIRE_BUS 2 //IO2
 #define TEMPERATURE_PRECISION 12
 OneWire onewire(ONE_WIRE_BUS); // pin for onewire DALLAS bus
 DallasTemperature dsSensors(&onewire);
@@ -90,7 +90,7 @@ DoubleResetDetector drd(DRD_TIMEOUT, DRD_ADDRESS);
 
 #define CFGFILE "/config.json"
 
-const unsigned long   sendDelay             = 5000; //in ms
+const unsigned long   sendDelay             = 60000; //in ms
 const unsigned long   sendStatDelay         = 60000;
 
 uint32_t heartBeat                          = 0;
@@ -283,6 +283,7 @@ void setup() {
   setSyncInterval(300);
   
   printSystemTime();
+  DEBUG_PRINTLN();
 #endif
 
 #ifdef ota
@@ -334,11 +335,11 @@ void setup() {
   timer.every(sendDelay, sendDataHA);
   timer.every(sendStatDelay, sendStatisticHA);
 
-  DEBUG_PRINTLN(" Ready");
- 
   ticker.detach();
   //keep LED on
   digitalWrite(BUILTIN_LED, HIGH);
+
+  DEBUG_PRINTLN("Setup is done.");
 }
 
 void loop() {
